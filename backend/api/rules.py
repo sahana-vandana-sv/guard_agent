@@ -28,19 +28,19 @@ class UpdateRuleRequest(BaseModel):
 
 
 @router.get("")
-def list_rules():
+async def list_rules():
     return [r.model_dump() for r in store.list_rules()]
 
 
 @router.post("", status_code=201)
-def create_rule(req: CreateRuleRequest):
+async def create_rule(req: CreateRuleRequest):
     rule = GuardrailRule(**req.model_dump())
     store.upsert_rule(rule)
     return rule.model_dump()
 
 
 @router.patch("/{rule_id}")
-def update_rule(rule_id: str, req: UpdateRuleRequest):
+async def update_rule(rule_id: str, req: UpdateRuleRequest):
     rule = store.get_rule(rule_id)
     if not rule:
         raise HTTPException(status_code=404, detail="Rule not found")
@@ -50,13 +50,13 @@ def update_rule(rule_id: str, req: UpdateRuleRequest):
 
 
 @router.delete("/{rule_id}", status_code=204)
-def delete_rule(rule_id: str):
+async def delete_rule(rule_id: str):
     if not store.delete_rule(rule_id):
         raise HTTPException(status_code=404, detail="Rule not found")
 
 
 @router.post("/{approval_id}/approve")
-def approve_tool(approval_id: str, approved: bool = True):
+async def approve_tool(approval_id: str, approved: bool = True):
     result = store.resolve_approval(approval_id, approved)
     if not result:
         raise HTTPException(status_code=404, detail="Pending approval not found")

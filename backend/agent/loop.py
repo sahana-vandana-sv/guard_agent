@@ -12,7 +12,7 @@ from agent.mcp_client import mcp_manager
 from policy import engine as policy_engine
 import policy.store as policy_store
 
-client = anthropic.Anthropic()
+client = anthropic.AsyncAnthropic()
 MODEL = "claude-sonnet-4-6"
 
 # conversation_id -> list of log entries
@@ -57,7 +57,7 @@ async def run_agent(user_message: str, conversation_id: str | None = None, histo
     token_usage = _token_usage.get(conversation_id, 0)
 
     while True:
-        response = client.messages.create(
+        response = await client.messages.create(
             model=MODEL,
             max_tokens=4096,
             tools=tools,

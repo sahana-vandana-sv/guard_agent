@@ -109,9 +109,14 @@ class MCPClientManager:
         for ctx, session in self._contexts:
             try:
                 await session.__aexit__(None, None, None)
-                await ctx.__aexit__(None, None, None)
-            except Exception:
+            except BaseException:
                 pass
+            try:
+                await ctx.__aexit__(None, None, None)
+            except BaseException:
+                pass
+        self._contexts.clear()
+        self._sessions.clear()
 
 
 # Singleton used across the app
