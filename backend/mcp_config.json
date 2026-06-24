@@ -1,0 +1,20 @@
+{
+  "servers": [
+    {
+      "name": "email-server",
+      "transport": "stdio",
+      "command": "python",
+      "args": ["../mcp_servers/email_server/server.py"],
+      "env": {}
+    },
+    {
+      "name": "exa-search",
+      "transport": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-exa"],
+      "env": {
+        "EXA_API_KEY": "${EXA_API_KEY}"
+      }
+    }
+  ]
+}
