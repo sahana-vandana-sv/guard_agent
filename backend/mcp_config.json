@@ -11,9 +11,9 @@
       "name": "exa-search",
       "transport": "stdio",
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-exa"],
+      "args": ["-y", "exa-mcp-server"],
       "env": {
-        "EXA_API_KEY": "${EXA_API_KEY}"
+        "EXA_API_KEY": "EXA_API_KEY"
       }
     }
   ]

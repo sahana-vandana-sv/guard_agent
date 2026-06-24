@@ -1,0 +1,7 @@
+anthropic>=0.30
+fastapi>=0.111
+uvicorn[standard]
+mcp==1.1.2
+websockets
+pydantic>=2
+python-dotenv

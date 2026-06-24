@@ -40,7 +40,10 @@ class MCPClientManager:
         if transport == "stdio":
             cmd = cfg["command"]
             args = cfg.get("args", [])
-            env = {**os.environ, **cfg.get("env", {})}
+            # Resolve env var values from OS environment if the value matches a key name
+            raw_env = cfg.get("env", {})
+            resolved_env = {k: os.environ.get(v, v) for k, v in raw_env.items()}
+            env = {**os.environ, **resolved_env}
             params = StdioServerParameters(command=cmd, args=args, env=env)
             ctx = stdio_client(params)
             read, write = await ctx.__aenter__()
