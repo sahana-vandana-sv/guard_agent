@@ -29,6 +29,10 @@ export function ChatPanel() {
 
     try {
       const res: ChatResponse = await api.chat(msg, convId, history);
+      console.log("[Chat] Agent response:", res);
+      if (res.pending_approval) {
+        console.warn("[Chat] Tool call is AWAITING APPROVAL — agent paused");
+      }
       setConvId(res.conversation_id);
       setHistory(res.messages);
       setTurns((t) => [

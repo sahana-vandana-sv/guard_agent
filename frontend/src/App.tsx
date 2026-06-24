@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ChatPanel } from "./components/ChatPanel";
 import { RulesPanel } from "./components/RulesPanel";
 import { LogsPanel } from "./components/LogsPanel";
+import { WsContext, useWebSocketProvider } from "./lib/ws";
 
 type Tab = "chat" | "rules" | "logs";
 
@@ -13,8 +14,11 @@ const TABS: { id: Tab; label: string }[] = [
 
 export default function App() {
   const [tab, setTab] = useState<Tab>("chat");
+  const ws = useWebSocketProvider();
+  const wsCtx = useMemo(() => ({ subscribe: ws.subscribe }), [ws.subscribe]);
 
   return (
+    <WsContext.Provider value={wsCtx}>
     <div className="h-screen flex flex-col bg-gray-100">
       {/* Header */}
       <header className="bg-gray-900 text-white px-6 py-3 flex items-center gap-4 flex-shrink-0">
@@ -52,5 +56,6 @@ export default function App() {
         </div>
       </main>
     </div>
+    </WsContext.Provider>
   );
 }

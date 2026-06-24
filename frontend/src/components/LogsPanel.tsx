@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { api, LogEntry } from "../lib/api";
-import { useWebSocket } from "../lib/ws";
+import { useWsEvent } from "../lib/ws";
 
 const VERDICT_COLORS: Record<string, string> = {
   ALLOW: "text-green-600",
@@ -27,8 +27,9 @@ export function LogsPanel() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [logs]);
 
-  useWebSocket((evt) => {
+  useWsEvent((evt) => {
     if (evt.event === "log_event") {
+      console.log("[Logs] WS log_event:", evt.data);
       setLogs((prev) => [...prev, evt.data as LogEntry]);
     }
   });

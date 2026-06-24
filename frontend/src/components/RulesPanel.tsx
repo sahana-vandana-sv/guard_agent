@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { api, Rule } from "../lib/api";
-import { useWebSocket } from "../lib/ws";
+import { useWsEvent } from "../lib/ws";
 
 const RULE_TYPES = ["block_tool", "require_approval", "input_validation", "token_budget"] as const;
 
@@ -31,8 +31,9 @@ export function RulesPanel() {
 
   useEffect(() => { fetchRules(); }, [fetchRules]);
 
-  useWebSocket((evt) => {
+  useWsEvent((evt) => {
     if (evt.event === "rule_update") {
+      console.log("[Rules] WS rule_update:", evt.data);
       setRules((prev) => {
         const idx = prev.findIndex((r) => r.id === (evt.data as Rule).id);
         if (idx >= 0) {
@@ -43,6 +44,7 @@ export function RulesPanel() {
         return [...prev, evt.data as Rule];
       });
     } else if (evt.event === "rule_delete") {
+      console.log("[Rules] WS rule_delete:", evt.data.id);
       setRules((prev) => prev.filter((r) => r.id !== evt.data.id));
     }
   });

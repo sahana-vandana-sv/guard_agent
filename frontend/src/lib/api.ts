@@ -38,13 +38,16 @@ export interface LogEntry {
 
 export const api = {
   async chat(message: string, conversationId?: string, history?: unknown[]): Promise<ChatResponse> {
+    console.log("[API] POST /chat", { message, conversationId });
     const res = await fetch(`${BASE}/chat`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, conversation_id: conversationId, history: history ?? [] }),
     });
     if (!res.ok) throw new Error(`Chat failed: ${res.status}`);
-    return res.json();
+    const data = await res.json();
+    console.log("[API] /chat response:", data);
+    return data;
   },
 
   async getRules(): Promise<Rule[]> {
@@ -54,28 +57,36 @@ export const api = {
   },
 
   async createRule(rule: Omit<Rule, "id" | "approval_timeout_seconds">): Promise<Rule> {
+    console.log("[API] POST /rules", rule);
     const res = await fetch(`${BASE}/rules`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(rule),
     });
     if (!res.ok) throw new Error("Failed to create rule");
-    return res.json();
+    const data = await res.json();
+    console.log("[API] Rule created:", data);
+    return data;
   },
 
   async updateRule(id: string, patch: Partial<Rule>): Promise<Rule> {
+    console.log("[API] PATCH /rules/" + id, patch);
     const res = await fetch(`${BASE}/rules/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
     });
     if (!res.ok) throw new Error("Failed to update rule");
-    return res.json();
+    const data = await res.json();
+    console.log("[API] Rule updated:", data);
+    return data;
   },
 
   async deleteRule(id: string): Promise<void> {
+    console.log("[API] DELETE /rules/" + id);
     const res = await fetch(`${BASE}/rules/${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("Failed to delete rule");
+    console.log("[API] Rule deleted:", id);
   },
 
   async approveToolCall(approvalId: string, approved: boolean): Promise<void> {
