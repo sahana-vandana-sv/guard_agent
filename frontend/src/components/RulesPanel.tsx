@@ -50,11 +50,25 @@ export function RulesPanel() {
   });
 
   async function toggle(rule: Rule) {
-    await api.updateRule(rule.id, { enabled: !rule.enabled });
+    setRules((prev) =>
+      prev.map((r) => (r.id === rule.id ? { ...r, enabled: !r.enabled } : r))
+    );
+    try {
+      await api.updateRule(rule.id, { enabled: !rule.enabled });
+    } catch {
+      setRules((prev) =>
+        prev.map((r) => (r.id === rule.id ? { ...r, enabled: rule.enabled } : r))
+      );
+    }
   }
 
   async function remove(id: string) {
-    await api.deleteRule(id);
+    setRules((prev) => prev.filter((r) => r.id !== id));
+    try {
+      await api.deleteRule(id);
+    } catch {
+      fetchRules();
+    }
   }
 
   async function submit() {
