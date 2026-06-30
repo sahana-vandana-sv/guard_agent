@@ -20,12 +20,54 @@ from policy.models import EvaluationResult, GuardrailRule, PendingApproval, Poli
 import policy.store as store
 
 
+_INJECTION_PATTERNS = [
+    r"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+(instructions?|rules?|constraints?|policies?)",
+    r"(bypass|override|disable|forget|disregard)\s+(the\s+)?(policy|guardrail|rules?|restrictions?|filter)",
+    r"you\s+are\s+now\s+(in\s+)?(developer|admin|sudo|unrestricted|jailbreak)\s+mode",
+    r"act\s+as\s+(if\s+)?(you\s+(have\s+no|are\s+without)\s+(rules?|restrictions?|policies?))",
+    r"pretend\s+(you\s+)?(have\s+no|there\s+are\s+no)\s+(rules?|restrictions?|guardrails?)",
+    r"do\s+not\s+(enforce|apply|check|follow)\s+(the\s+)?(policy|rules?|guardrails?)",
+    r"system\s*:\s*(ignore|override|bypass)",
+    r"<\s*system\s*>.*?(ignore|override|bypass)",
+]
+
+_INJECTION_RE = re.compile("|".join(_INJECTION_PATTERNS), re.IGNORECASE | re.DOTALL)
+
+
+def _check_prompt_injection(tool_input: dict[str, Any]) -> EvaluationResult | None:
+    """Scan all string fields for prompt injection attempts. Runs before all rules."""
+    def _extract_strings(obj, depth=0):
+        if depth > 5:
+            return
+        if isinstance(obj, str):
+            yield obj
+        elif isinstance(obj, dict):
+            for v in obj.values():
+                yield from _extract_strings(v, depth + 1)
+        elif isinstance(obj, list):
+            for item in obj:
+                yield from _extract_strings(item, depth + 1)
+
+    for text in _extract_strings(tool_input):
+        if _INJECTION_RE.search(text):
+            return EvaluationResult(
+                verdict=PolicyVerdict.BLOCK,
+                reason=f"Prompt injection attempt detected in tool input. The policy engine cannot be overridden via tool arguments.",
+            )
+    return None
+
+
 def evaluate(
     tool_name: str,
     tool_input: dict[str, Any],
     conversation_id: str,
     token_usage: int = 0,
 ) -> EvaluationResult:
+    # Prompt injection check — always runs first, not configurable
+    injection = _check_prompt_injection(tool_input)
+    if injection:
+        return injection
+
     rules = store.list_rules()
     enabled = [r for r in rules if r.enabled]
 

@@ -66,6 +66,11 @@ async def list_tools() -> list[types.Tool]:
                 "required": ["draft_id"],
             },
         ),
+        types.Tool(
+            name="smart_digest",
+            description="Returns all drafts ranked by urgency score based on subject/body keywords. Highlights time-sensitive emails that need attention first.",
+            inputSchema={"type": "object", "properties": {}},
+        ),
     ]
 
 
@@ -110,6 +115,28 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             text = f"Error: No draft found with ID {draft_id}"
         else:
             text = f"Draft {draft_id} cancelled successfully."
+
+    elif name == "smart_digest":
+        all_drafts = storage.list_all_drafts()
+        if not all_drafts:
+            text = "No drafts to digest."
+        else:
+            URGENT_KEYWORDS = ["urgent", "asap", "immediately", "deadline", "critical", "important", "action required", "overdue", "follow up", "reminder"]
+            def score(draft):
+                text_blob = (draft.get("subject", "") + " " + draft.get("body", "")).lower()
+                return sum(2 if kw in text_blob else 0 for kw in URGENT_KEYWORDS[:3]) + \
+                       sum(1 if kw in text_blob else 0 for kw in URGENT_KEYWORDS[3:])
+
+            ranked = sorted(all_drafts, key=score, reverse=True)
+            lines = ["📋 SMART DIGEST — Drafts ranked by urgency:\n"]
+            for i, d in enumerate(ranked, 1):
+                s = score(d)
+                priority = "🔴 HIGH" if s >= 4 else "🟡 MEDIUM" if s >= 2 else "🟢 LOW"
+                lines.append(f"{i}. [{priority}] [{d['id']}] To: {d['to']}")
+                lines.append(f"   Subject: {d['subject']}")
+                lines.append(f"   Status: {d['status']} | Urgency score: {s}")
+                lines.append("")
+            text = "\n".join(lines)
 
     else:
         text = f"Error: Unknown tool '{name}'"

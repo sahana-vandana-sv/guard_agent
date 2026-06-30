@@ -120,6 +120,14 @@ async def run_agent(user_message: str, conversation_id: str | None = None, histo
 
             if verdict_result.verdict == "BLOCK":
                 content = f"[BLOCKED by policy] {verdict_result.reason}"
+                # Return immediately for token_budget blocks — don't let Claude keep responding
+                if verdict_result.rule_id and "token" in (verdict_result.reason or "").lower():
+                    _conversation_history[conversation_id] = messages
+                    return {
+                        "conversation_id": conversation_id,
+                        "response": f"Blocked: {verdict_result.reason}. This conversation has reached its token limit.",
+                        "messages": [],
+                    }
             elif verdict_result.verdict == "NEEDS_APPROVAL":
                 import re as _re
                 _m = _re.search(r"approval ID: ([a-f0-9\-]+)", verdict_result.reason or "")
