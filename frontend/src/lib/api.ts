@@ -1,4 +1,4 @@
-const BASE = "http://localhost:8000";
+const BASE = "/api";
 
 export interface Message {
   role: "user" | "assistant";
@@ -9,6 +9,7 @@ export interface ChatResponse {
   conversation_id: string;
   response: string;
   pending_approval?: boolean;
+  approval_id?: string;
   messages: unknown[];
 }
 
@@ -44,7 +45,11 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message, conversation_id: conversationId, history: history ?? [] }),
     });
-    if (!res.ok) throw new Error(`Chat failed: ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text();
+      console.error("[API] /chat error body:", body);
+      throw new Error(`Chat failed: ${res.status} — ${body}`);
+    }
     const data = await res.json();
     console.log("[API] /chat response:", data);
     return data;
@@ -90,7 +95,8 @@ export const api = {
   },
 
   async approveToolCall(approvalId: string, approved: boolean): Promise<void> {
-    const res = await fetch(`${BASE}/rules/${approvalId}/approve?approved=${approved}`, {
+    console.log("[API] POST /approvals/" + approvalId + "/resolve approved=" + approved);
+    const res = await fetch(`${BASE}/approvals/${approvalId}/resolve?approved=${approved}`, {
       method: "POST",
     });
     if (!res.ok) throw new Error("Failed to resolve approval");

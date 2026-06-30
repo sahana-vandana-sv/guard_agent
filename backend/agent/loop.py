@@ -21,6 +21,8 @@ _conversation_logs: dict[str, list[dict]] = {}
 _token_usage: dict[str, int] = {}
 # conversation_id -> message history for Claude
 _conversation_history: dict[str, list] = {}
+# conversation_id -> pending tool_use_id awaiting approval
+_pending_tool_ids: dict[str, str] = {}
 
 _ws_log_broadcast = None  # injected by ws.py
 
@@ -52,7 +54,7 @@ async def run_agent(user_message: str, conversation_id: str | None = None, histo
         conversation_id = str(uuid.uuid4())[:8]
 
     # Use server-side history; ignore any history sent from frontend
-    messages = _conversation_history.get(conversation_id, [])
+    messages = list(_conversation_history.get(conversation_id, []))
     messages.append({"role": "user", "content": user_message})
     _log(conversation_id, {"type": "user", "content": user_message, "ts": time.time()})
 
@@ -119,17 +121,21 @@ async def run_agent(user_message: str, conversation_id: str | None = None, histo
             if verdict_result.verdict == "BLOCK":
                 content = f"[BLOCKED by policy] {verdict_result.reason}"
             elif verdict_result.verdict == "NEEDS_APPROVAL":
-                content = f"[AWAITING APPROVAL] {verdict_result.reason}"
-                # Return early — agent pauses until approval is granted
+                import re as _re
+                _m = _re.search(r"approval ID: ([a-f0-9\-]+)", verdict_result.reason or "")
+                approval_id = _m.group(1) if _m else None
+                # Append placeholder tool_result so Claude message sequence stays valid
                 messages.append({
                     "role": "user",
-                    "content": [{"type": "tool_result", "tool_use_id": tool_block.id, "content": content}],
+                    "content": [{"type": "tool_result", "tool_use_id": tool_block.id, "content": "[AWAITING HUMAN APPROVAL]"}],
                 })
                 _conversation_history[conversation_id] = messages
+                _pending_tool_ids[conversation_id] = tool_block.id
                 return {
                     "conversation_id": conversation_id,
-                    "response": f"I need human approval before executing '{tool_name}'. {verdict_result.reason}",
+                    "response": f"Tool '{tool_name}' requires human approval before executing.",
                     "pending_approval": True,
+                    "approval_id": approval_id,
                     "messages": [],
                 }
             else:

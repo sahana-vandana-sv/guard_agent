@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.chat import router as chat_router
 from api.rules import router as rules_router
+from api.approvals import router as approvals_router
 from api.ws import broadcast, ws_endpoint
 from agent.loop import set_log_broadcast
 from agent.mcp_client import mcp_manager
@@ -51,6 +52,7 @@ app.add_middleware(
 
 app.include_router(chat_router)
 app.include_router(rules_router)
+app.include_router(approvals_router)
 
 
 @app.websocket("/ws")

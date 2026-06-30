@@ -5,7 +5,7 @@ interface Turn {
   role: "user" | "assistant";
   content: string;
   pending_approval?: boolean;
-  approvalId?: string;
+  approval_id?: string;
 }
 
 export function ChatPanel() {
@@ -18,6 +18,17 @@ export function ChatPanel() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [turns]);
+
+  async function resolve(approvalId: string, approved: boolean, turnIndex: number) {
+    await api.approveToolCall(approvalId, approved);
+    setTurns((t) =>
+      t.map((turn, i) =>
+        i === turnIndex
+          ? { ...turn, pending_approval: false, content: turn.content + (approved ? " — Approved." : " — Denied.") }
+          : turn
+      )
+    );
+  }
 
   async function send() {
     const msg = input.trim();
@@ -39,6 +50,7 @@ export function ChatPanel() {
           role: "assistant",
           content: res.response,
           pending_approval: res.pending_approval,
+          approval_id: res.approval_id,
         },
       ]);
     } catch (e) {
@@ -78,9 +90,25 @@ export function ChatPanel() {
               }`}
             >
               {t.pending_approval && (
-                <p className="text-xs font-semibold text-yellow-700 mb-1">
-                  Awaiting approval
-                </p>
+                <div className="mb-2">
+                  <p className="text-xs font-semibold text-yellow-700 mb-2">
+                    Awaiting approval
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => resolve(t.approval_id!, true, i)}
+                      className="px-3 py-1 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => resolve(t.approval_id!, false, i)}
+                      className="px-3 py-1 text-xs font-medium bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    >
+                      Deny
+                    </button>
+                  </div>
+                </div>
               )}
               {t.content}
             </div>
