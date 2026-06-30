@@ -24,5 +24,5 @@ async def chat(req: ChatRequest):
 
 
 @router.get("/logs")
-def logs(conversation_id: Optional[str] = None):
+async def logs(conversation_id: Optional[str] = None):
     return get_logs(conversation_id)
