@@ -13,7 +13,6 @@ export function ChatPanel() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [convId, setConvId] = useState<string | undefined>();
-  const [history, setHistory] = useState<unknown[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -28,13 +27,12 @@ export function ChatPanel() {
     setLoading(true);
 
     try {
-      const res: ChatResponse = await api.chat(msg, convId, history);
+      const res: ChatResponse = await api.chat(msg, convId);
       console.log("[Chat] Agent response:", res);
       if (res.pending_approval) {
         console.warn("[Chat] Tool call is AWAITING APPROVAL — agent paused");
       }
       setConvId(res.conversation_id);
-      setHistory(res.messages);
       setTurns((t) => [
         ...t,
         {

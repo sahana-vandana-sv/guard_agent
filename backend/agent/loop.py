@@ -19,6 +19,8 @@ MODEL = "claude-sonnet-4-6"
 _conversation_logs: dict[str, list[dict]] = {}
 # conversation_id -> total input+output tokens used
 _token_usage: dict[str, int] = {}
+# conversation_id -> message history for Claude
+_conversation_history: dict[str, list] = {}
 
 _ws_log_broadcast = None  # injected by ws.py
 
@@ -49,7 +51,8 @@ async def run_agent(user_message: str, conversation_id: str | None = None, histo
     if not conversation_id:
         conversation_id = str(uuid.uuid4())[:8]
 
-    messages = list(history or [])
+    # Use server-side history; ignore any history sent from frontend
+    messages = _conversation_history.get(conversation_id, [])
     messages.append({"role": "user", "content": user_message})
     _log(conversation_id, {"type": "user", "content": user_message, "ts": time.time()})
 
@@ -81,10 +84,11 @@ async def run_agent(user_message: str, conversation_id: str | None = None, histo
         if response.stop_reason == "end_turn" or not tool_calls:
             final_text = " ".join(text_parts)
             _log(conversation_id, {"type": "assistant", "content": final_text, "ts": time.time()})
+            _conversation_history[conversation_id] = messages
             return {
                 "conversation_id": conversation_id,
                 "response": final_text,
-                "messages": messages,
+                "messages": [],
             }
 
         # Append assistant message with all blocks
@@ -121,11 +125,12 @@ async def run_agent(user_message: str, conversation_id: str | None = None, histo
                     "role": "user",
                     "content": [{"type": "tool_result", "tool_use_id": tool_block.id, "content": content}],
                 })
+                _conversation_history[conversation_id] = messages
                 return {
                     "conversation_id": conversation_id,
                     "response": f"I need human approval before executing '{tool_name}'. {verdict_result.reason}",
                     "pending_approval": True,
-                    "messages": messages,
+                    "messages": [],
                 }
             else:
                 # ALLOW — execute via MCP
